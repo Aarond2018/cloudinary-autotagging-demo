@@ -10,12 +10,11 @@ cloudinary.config({
 export default async function handler(req, res) {
 	try {
     const imageTags = await cloudinary.api.tags({
-      /* resource_type: "image", */
       max_results: 50,
     });
-    /* console.log(imageTags.tags) */
     res.status(200).json(imageTags);
   } catch (error) {
     console.log(error)
+    res.json({message: "an error occurred"})
   }
 }

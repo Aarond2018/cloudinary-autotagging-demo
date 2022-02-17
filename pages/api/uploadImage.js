@@ -18,5 +18,6 @@ export default async function handler(req, res) {
     res.status(200).json(cldResponse);
   } catch (error) {
     console.log(error)
+    res.json({message: "an error occured while uploading image"})
   }
 }
