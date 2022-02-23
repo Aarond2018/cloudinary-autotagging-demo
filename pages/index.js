@@ -1,120 +1,100 @@
 import { useState, useEffect } from "react";
-import Image from "next/image";
 import styles from "../styles/Home.module.css";
 import axios from "axios";
 
 export default function Home() {
-	const [image, setImage] = useState("");
-	const [imageTags, setImageTags] = useState([]);
-	const [cldImages, setCldImages] = useState([]);
-	const [currentTag, setCurrentTag] = useState(null);
+  const [image, setImage] = useState("");
+  const [imageTags, setImageTags] = useState([]);
+  const [cldImages, setCldImages] = useState([]);
 
-	useEffect(() => {
-		(async function getCldImageTags() {
-			try {
-				const cldTags = await axios.get("/api/getImageTags");
-				setImageTags(cldTags.data.tags);
-			} catch (error) {
-				console.log("tags" + error);
-			}
-		})();
+  useEffect(() => {
+    (async function getCldImageTags() {
+      try {
+        const cldTags = await axios.get("/api/getImageTags");
+        setImageTags(cldTags.data.tags);
+      } catch (error) {
+        console.log("tags" + error);
+      }
+    })();
 
-		getAllImages();
-	}, []);
+    getAllImages();
+  }, []);
 
-	/* useEffect(() => {
-		if (!currentTag) return;
+  async function getAllImages() {
+    try {
+      const images = await axios.get("/api/getImages");
+      setCldImages(images.data);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 
-		axios
-			.post("/api/getImagesByTag", {
-				tag: JSON.stringify({
-					tag: currentTag,
-				}),
-			})
-			.then((res) => setCldImages(res.data.resources))
-			.catch((err) => console.log(err));
-	}, [currentTag]); */
+  const handleInputOnChange = (e) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(e.target.files[0]);
+    reader.onload = function (e) {
+      setImage(e.target.result);
+    };
+  };
 
-	async function getAllImages() {
-		try {
-			const images = await axios.get("/api/getImages");
-			setCldImages(images.data);
-			console.log(images.data);
-		} catch (error) {
-			console.log(error);
-		}
-	}
+  const handleOnFormSubmit = (e) => {
+    e.preventDefault();
+    (async function uploadImage() {
+      try {
+        const response = await axios.post("/api/uploadImage", {
+          image: JSON.stringify(image)
+        });
+        console.log(response.data);
+      } catch (error) {
+        console.log("imageUpload" + error);
+      }
+    })();
+  };
 
-	const handleInputOnChange = (e) => {
-		const reader = new FileReader();
-		reader.readAsDataURL(e.target.files[0]);
-		reader.onload = function (e) {
-			setImage(e.target.result);
-		};
-	};
+  const handleTagClick = (tag) => {
+    (async () => {
+      try {
+        const resImages = await axios.post("/api/getImagesByTag", {
+          tag: JSON.stringify({
+            tag: tag
+          })
+        });
 
-	const handleOnFormSubmit = (e) => {
-		e.preventDefault();
+        setCldImages(resImages.data.resources);
+      } catch (error) {
+        console.log("tagClick" + error);
+      }
+    })();
+  };
 
-		(async function uploadImage() {
-			try {
-				const response = await axios.post("/api/uploadImage", {
-					image: JSON.stringify(image),
-				});
-				console.log(response.data);
-			} catch (error) {
-				console.log("imageUpload" + error);
-			}
-		})();
-	};
+  return (
+    <div className={styles.container}>
+      <form onSubmit={handleOnFormSubmit}>
+        <input type="file" onChange={handleInputOnChange}></input>
+        <button disabled={image ? false : true}>Upload to Cloudinary</button>
+      </form>
 
-	const handleTagClick = (tag) => {
-		(async () => {
-			try {
-				const resImages = await axios.post("/api/getImagesByTag", {
-					tag: JSON.stringify({
-						tag: tag,
-					})
-				});
-       
-				setCldImages(resImages.data.resources);
-				console.log(resImages.data.resources);
-				
-			} catch (error) {
-				console.log("tagClick" + error);
-			}
-		})();
-	};
+      <main>
+        <div className={styles.tags}>
+          {imageTags
+            ? imageTags.map((tag) => (
+                <button key={tag} onClick={() => handleTagClick(tag)}>
+                  {tag}
+                </button>
+              ))
+            : "upload Image"}
+        </div>
 
-	return (
-		<div className={styles.container}>
-			<form onSubmit={handleOnFormSubmit}>
-				<input type="file" onChange={handleInputOnChange}></input>
-				<button disabled={image ? false : true}>Upload to Cloudinary</button>
-			</form>
-
-			<main>
-				<div className={styles.tags}>
-					{imageTags
-						? imageTags.map((tag) => (
-								<button key={tag} onClick={() => handleTagClick(tag)}>
-									{/* <button key={tag} onClick={() => handleTagClick(tag)}> */}
-									{tag}
-								</button>
-						  ))
-						: "upload Image"}
-				</div>
-
-				<div className={styles.images}>
-					{cldImages
-						? cldImages.map((img) => (
-								<div key={img.public_id}>
-									<img src={img.secure_url}></img>
-								</div>
-						  ))
-						: "Loading..."}
-				</div>
-			</main>
-		</div>
-	);
+        <div className={styles.images}>
+          {cldImages
+            ? cldImages.map((img) => (
+                <div key={img.public_id}>
+                  <img src={img.secure_url} alt={img.public_id}></img>
+                </div>
+              ))
+            : "Loading..."}
+        </div>
+      </main>
+    </div>
+  );
 }
